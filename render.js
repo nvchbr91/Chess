@@ -21,7 +21,7 @@ import {
 
 let canvas;
 let canvasChangingState = document.getElementById('changingState');
-let ctxChangingState;
+let ctxChangingState = canvasChangingState.getContext('2d');
 let ctx;
 let n;
 let rect;
@@ -34,6 +34,9 @@ let changingState = false;
 let imageCache;
 let pieceStates = [];
 let hoveringPiece = false;
+
+// Fix drawGrowCell while changingState
+// Fix low resolution while changingState
 
 function drawBoard(c1 = '#f7f7e6ff', c2 = '#416f9cff') {
     for (let y = 0; y < n; y++) {
@@ -150,7 +153,8 @@ export function drawPiece(ctx, piece, cellSize) {
     ctx.drawImage(img, x, y, size, size);
 }
 
-export function getPositionByMouse(e, canvas, rect, cellSize, moving) {
+export function getPositionByMouse(e, canvas, cellSize, moving) {
+    const rect = canvas.getBoundingClientRect();
     const mx = Math.min(Math.max(e.clientX - rect.left, cellSize/2), canvas.width - cellSize/2);
     const my = Math.min(Math.max(e.clientY - rect.top, cellSize / 2), canvas.height - cellSize / 2);
 
@@ -339,7 +343,7 @@ export function renderChangingState(e, hoveringPiece) {
 canvasChangingState.addEventListener('mousedown', e => {
     if (!changingState) return;
     const rect = canvasChangingState.getBoundingClientRect();
-    const pos = getPositionByMouse(e, canvasChangingState, rect, cellSize, false);
+    const pos = getPositionByMouse(e, canvasChangingState, cellSize, false);
     const my = Math.min(Math.max(e.clientY - rect.top, cellSize / 2), canvasChangingState.height - cellSize / 2);
     const y = Math.floor(my * 2 / cellSize) + 0.5 - Math.floor(my / cellSize);
     
@@ -408,7 +412,7 @@ canvasChangingState.addEventListener('mousemove', e => {
     if (!changingState) return;
 
     const rect = canvasChangingState.getBoundingClientRect();
-    const pos = getPositionByMouse(e, canvasChangingState, rect, cellSize, false);
+    const pos = getPositionByMouse(e, canvasChangingState, cellSize, false);
     hoveringPiece = false;
 
     const mx = Math.min(Math.max(e.clientX - rect.left, cellSize/2), canvasChangingState.width - cellSize/2);

@@ -146,8 +146,12 @@ function synchronize() {
 
 function resize() {
     const size = Math.min(window.innerWidth, window.innerHeight) * canvasSizeRatio;
-    canvas.width = size;
-    canvas.height = size;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    ctx.scale(dpr, dpr);
     rect = canvas.getBoundingClientRect();
     cellSize = size / n;
     canvasChangingState.width = cellSize;
@@ -162,7 +166,7 @@ function resize() {
 }
 
 canvas.addEventListener('mousedown', e => {
-    const pos = getPositionByMouse(e, canvas, rect, cellSize, false);
+    const pos = getPositionByMouse(e, canvas, cellSize, false);
     let clickedPiece = null;
 
     if (test.changingState) return;
@@ -263,7 +267,7 @@ canvas.addEventListener('mousedown', e => {
 
 
 window.addEventListener('mousemove', e => {
-    const cellPos = getPositionByMouse(e, canvas, rect, cellSize, false);
+    const cellPos = getPositionByMouse(e, canvas, cellSize, false);
     let hoveringPiece = false;
 
     if (test.changingState) return;
@@ -279,7 +283,7 @@ window.addEventListener('mousemove', e => {
     if (!currentPiece) return;
 
     if (dragging) {
-        const pos = getPositionByMouse(e, canvas, rect, cellSize, true);
+        const pos = getPositionByMouse(e, canvas, cellSize, true);
         canvas.style.cursor = 'pointer';
 
         currentPiece.pos.x = pos.x;
@@ -313,7 +317,7 @@ window.addEventListener('mouseup', e => {
 
     dragging = false;
 
-    const pos = getPositionByMouse(e, canvas, rect, cellSize, false);
+    const pos = getPositionByMouse(e, canvas, cellSize, false);
 
     if (test.changingState) return;
 
