@@ -7,6 +7,6 @@ body {
     background-color: rgb(25, 25, 25);
 }
 
-canvas {
-    border: 2px solid white;
+.changingState {
+    background-color: rgb(25, 25, 25);
 }

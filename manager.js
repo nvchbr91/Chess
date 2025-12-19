@@ -1,136 +1,147 @@
 import {
-    pieces,
-    isValidMove
+    pieces
  } from './pieces.js';
 import {
     render,
-    getPositionByMouse
-} from './animations.js';
+    changeStateBoard,
+    loadImage,
+    getPositionByMouse,
+    sync,
+} from './render.js';
+import {
+    isValidMove,
+    createPiece
+} from './pieces/rules/utils.js'
+
+import {
+    allPiecesOnBoard,
+    history,
+    syncAllPiecesOnBoard,
+    currentPiece,
+    syncCurrentPiece,
+} from './shareVariables.js'
+
+// Sau này sửa thành manager chỉ export, các files khác thì chỉ import từ manager.
 
 const canvas = document.getElementById('boardGame');
+const canvasChangingState = document.getElementById('changingState')
+const ctxChangeingState = canvasChangingState.getContext('2d');
 const ctx = canvas.getContext('2d');
 const imageCache = {};
 
 let n = 8;
 let rect;
 let cellSize;
-let pieceSizeRatio = 0.8;
+let pieceSizeRatio = 0.9;
 let canvasSizeRatio = 0.7
-let currentPiece;
 let dragging = false;
 let showValidMoves = 0;
+export let test = { changingState: false }
 
-let knight = {
-    pos: { x: 1, y: 3 },
-    originPos: { x: 1, y: 3 },
-    class: 0,
-    shape: { image: loadImage('assets/white_knight.png'), size: 0, },
-    validMoves: [],
-    takeAble: [],
-    unTakeAble: [],
-    getPiece: pieces.knight,
-};
+synchronize();
 
-let knight2 = {
-    pos: { x: 6, y: 6 },
-    originPos: { x: 6, y: 6 },
-    class: 1,
-    shape: { image: loadImage('assets/black_knight.png'), size: 0, },
-    validMoves: [],
-    takeAble: [],
-    unTakeAble: [],
-    getPiece: pieces.knight,
-};
+for (let i = 0; i < 10; i++) {
+    let x, y;
 
-let knight3 = {
-    pos: { x: 4, y: 3 },
-    originPos: { x: 4, y: 3 },
-    class: 1,
-    shape: { image: loadImage('assets/black_knight.png'), size: 0, },
-    validMoves: [],
-    takeAble: [],
-    unTakeAble: [],
-    getPiece: pieces.knight,
-};
+    if (allPiecesOnBoard.length === 0) {
+        x = Math.floor(Math.random() * 8);
+        y = Math.floor(Math.random() * 8);
+    } else {
+        const occupied = allPiecesOnBoard.map(
+            p => 8 * (p.pos.y - 1) + (p.pos.x - 1)
+        );
 
-let queen = {
-    pos: { x: 1, y: 7 },
-    originPos: { x: 1, y: 7 },
-    class: 0,
-    shape: { image: loadImage('assets/white_queen.png'), size: 0, },
-    validMoves: [],
-    takeAble: [],
-    unTakeAble: [],
-    getPiece: pieces.queen,
-};
-
-let king = {
-    pos: { x: 5, y: 7 },
-    originPos: { x: 1, y: 7 },
-    class: 1,
-    shape: { image: loadImage('assets/black_king.png'), size: 0, },
-    validMoves: [],
-    takeAble: [],
-    unTakeAble: [],
-    getPiece: pieces.king,
-};
-
-let rook = {
-    pos: { x: 2, y: 8 },
-    originPos: { x: 1, y: 7 },
-    class: 0,
-    shape: { image: loadImage('assets/white_rook.png'), size: 0, },
-    validMoves: [],
-    takeAble: [],
-    unTakeAble: [],
-    getPiece: pieces.rook,
-};
-
-let bishop = {
-    pos: { x: 1, y: 1 },
-    originPos: { x: 1, y: 7 },
-    class: 1,
-    shape: { image: loadImage('assets/black_bishop.png'), size: 0, },
-    validMoves: [],
-    takeAble: [],
-    unTakeAble: [],
-    getPiece: pieces.bishop,
-};
-
-let allPiecesOnBoard = [knight, knight2, knight3, queen, king, rook, bishop]
-
-for (let i = 0; i < allPiecesOnBoard.length; i++) {
-    const r = allPiecesOnBoard[i].getPiece.validMoves(
-        allPiecesOnBoard[i],
-        allPiecesOnBoard,
-        n
-    );
-    allPiecesOnBoard[i].validMoves = r.validMoves;
-    allPiecesOnBoard[i].takeAble = r.takeAble;
-    allPiecesOnBoard[i].unTakeAble = r.unTakeAble;
-}
-
-function loadImage(src) {
-    if (imageCache[src]) return imageCache[src];
-
-    const img = new Image();
-    img.src = src;
-
-    img.onload = () => {
-        render({
-            ctx,
-            canvas,
-            cellSize,
-            n,
-            showValidMoves,
-            dragging,
-            currentPiece,
-            pieces: allPiecesOnBoard,
-        });
+        const pos = randomExclusive(occupied, 64);
+        x = pos % 8;
+        y = Math.floor(pos / 8);
     }
 
-    imageCache[src] = img;
-    return img;
+    const rules = [
+        pieces.king,
+        pieces.queen,
+        pieces.rook,
+        pieces.bishop,
+        pieces.knight,
+        pieces.pawn
+    ];
+
+    const pieceRule = rules[Math.floor(Math.random() * rules.length)];
+    const cls = Math.floor(Math.random() * 2);
+    const color = cls === 0 ? 'white' : 'black';
+
+    const tmp = createPiece(
+        x + 1,
+        y + 1,
+        cls,
+        `assets/${color}_${pieceRule.name}.png`,
+        pieceRule
+    )
+    tmp.shape.image = loadImage(ctx, tmp);
+    allPiecesOnBoard.push(tmp);
+}
+
+function randomExclusive(excluded, max) {
+    const available = [];
+
+    for (let i = 0; i < max; i++) {
+        if (!excluded.includes(i)) {
+            available.push(i);
+        }
+    }
+
+    return available[Math.floor(Math.random() * available.length)];
+}
+
+function clonePiece(p) {
+    return {
+        pos: { ...p.pos },
+        originPos: { ...p.originPos },
+        class: p.class,
+        shape: { ...p.shape },
+        validMoves: [...p.validMoves],
+        takeAble: [...p.takeAble],
+        unTakeAble: [...p.unTakeAble],
+        getRules: p.getRules
+    };
+}
+
+export function cloneAllPiecesOnBoard(allPiecesOnBoard) {
+    return allPiecesOnBoard.map(clonePiece);
+}
+
+function pushHistory(allPiecesOnBoard) {
+    const h = history[history.length - 1];
+
+    if (history[history.length-1].length !== allPiecesOnBoard.length) {
+        history.push(cloneAllPiecesOnBoard(allPiecesOnBoard));
+        return;
+    } else {
+        for (let i = 0; i < h.length; i++) {
+            if (h[i].pos.x !== allPiecesOnBoard[i].pos.x ||
+                h[i].pos.y !== allPiecesOnBoard[i].pos.y) {
+                history.push(cloneAllPiecesOnBoard(allPiecesOnBoard));
+                return;
+            }
+        }
+    }
+}
+
+function synchronize() {
+    sync({
+        canvas,
+        canvasChangingState,
+        ctxChangeingState,
+        ctx,
+        n,
+        rect,
+        cellSize,
+        pieceSizeRatio,
+        canvasSizeRatio,
+        dragging,
+        showValidMoves,
+        changingState: test.changingState,
+        imageCache,
+    })
 }
 
 function resize() {
@@ -139,22 +150,26 @@ function resize() {
     canvas.height = size;
     rect = canvas.getBoundingClientRect();
     cellSize = size / n;
+    canvasChangingState.width = cellSize;
+    canvasChangingState.height = size + cellSize/2;
+    canvasChangingState.style.marginLeft = `${cellSize / 2}px`;
+    canvasChangingState.style.marginTop = `${cellSize / 2}px`;
     for (let i = 0; i < allPiecesOnBoard.length; i++) {
         allPiecesOnBoard[i].shape.size = cellSize * pieceSizeRatio;
     }
-}
 
-resize();
+    synchronize();
+}
 
 canvas.addEventListener('mousedown', e => {
     const pos = getPositionByMouse(e, canvas, rect, cellSize, false);
-
     let clickedPiece = null;
+
+    if (test.changingState) return;
     for (let i = 0; i < allPiecesOnBoard.length; i++) {
         const p = allPiecesOnBoard[i];
         if (p.pos.x === pos.x && p.pos.y === pos.y) {
             clickedPiece = p;
-            break;
         }
     }
 
@@ -163,7 +178,7 @@ canvas.addEventListener('mousedown', e => {
         currentPiece.originPos.x = currentPiece.pos.x;
         currentPiece.originPos.y = currentPiece.pos.y;
 
-        const cP = currentPiece.getPiece.validMoves(
+        const cP = currentPiece.getRules.validMoves(
             currentPiece,
             allPiecesOnBoard,
             n
@@ -177,7 +192,7 @@ canvas.addEventListener('mousedown', e => {
 
     if (showValidMoves % 2 === 0) {
         if (clickedPiece) {
-            currentPiece = clickedPiece;
+            syncCurrentPiece(clickedPiece);
             prepareCurrentPiece();
             showValidMoves++;
         }
@@ -186,49 +201,86 @@ canvas.addEventListener('mousedown', e => {
     else {
         if (clickedPiece && clickedPiece === currentPiece) {
             prepareCurrentPiece();
-            showValidMoves++;
         }
         else if (isValidMove(currentPiece, pos.x, pos.y)) {
-
             const isTake = currentPiece.takeAble.some(
                 p => p.pos.x === pos.x && p.pos.y === pos.y
             );
 
             if (isTake) {
-                allPiecesOnBoard = allPiecesOnBoard.filter(
+                syncAllPiecesOnBoard(allPiecesOnBoard.filter(
                     p => !(p.pos.x === pos.x && p.pos.y === pos.y)
-                );
+                ))
             }
 
             currentPiece.pos.x = pos.x;
             currentPiece.pos.y = pos.y;
-            showValidMoves++;
+
+            pushHistory(allPiecesOnBoard);
         }
-        else {
-            showValidMoves++;
-        }
+
+        showValidMoves++;
     }
 
-    render({
-        ctx,
-        canvas,
-        cellSize,
-        n,
-        showValidMoves,
-        dragging,
-        pos,
-        currentPiece,
-        pieces: allPiecesOnBoard,
-    });
+    if (currentPiece && currentPiece.getRules.canChangeStateCondition(currentPiece, n)) {
+        test.changingState = true;
+        dragging = false;
+        showValidMoves = 0;
+
+        render({
+            ctx,
+            canvas,
+            cellSize,
+            n,
+            showValidMoves,
+            dragging,
+            pos,
+            currentPiece,
+            pieces: allPiecesOnBoard,
+        });
+
+        changeStateBoard(
+            currentPiece,
+            ctx,
+            canvas,
+            ctxChangeingState,
+            cellSize,
+        );
+    } else {
+        render({
+            ctx,
+            canvas,
+            cellSize,
+            n,
+            showValidMoves,
+            dragging,
+            pos,
+            currentPiece,
+            pieces: allPiecesOnBoard,
+        });
+    }
 });
 
 
 window.addEventListener('mousemove', e => {
-    if (!currentPiece) return;
     const cellPos = getPositionByMouse(e, canvas, rect, cellSize, false);
+    let hoveringPiece = false;
+
+    if (test.changingState) return;
+
+    for (const p of allPiecesOnBoard) {
+        if (p.pos.x === cellPos.x && p.pos.y === cellPos.y) {
+            hoveringPiece = true;
+            break;
+        }
+    }
+    canvas.style.cursor = hoveringPiece ? 'pointer' : 'default';
+
+    if (!currentPiece) return;
 
     if (dragging) {
         const pos = getPositionByMouse(e, canvas, rect, cellSize, true);
+        canvas.style.cursor = 'pointer';
 
         currentPiece.pos.x = pos.x;
         currentPiece.pos.y = pos.y;
@@ -236,17 +288,23 @@ window.addEventListener('mousemove', e => {
         if (cellPos.x !== currentPiece.originPos.x || cellPos.y !== currentPiece.originPos.y) showValidMoves = 0;
     }
 
-    render({
-        ctx,
-        canvas,
-        cellSize,
-        n,
-        showValidMoves,
-        dragging,
-        cellPos,
-        currentPiece,
-        pieces: allPiecesOnBoard,
-    });
+    if (dragging || showValidMoves % 2 === 1) {
+        if (isValidMove(currentPiece, cellPos.x, cellPos.y)) {
+            canvas.style.cursor = 'pointer';
+        }
+
+        render({
+            ctx,
+            canvas,
+            cellSize,
+            n,
+            showValidMoves,
+            dragging,
+            cellPos,
+            currentPiece,
+            pieces: allPiecesOnBoard,
+        });
+    }
 });
 
 window.addEventListener('mouseup', e => {
@@ -257,39 +315,70 @@ window.addEventListener('mouseup', e => {
 
     const pos = getPositionByMouse(e, canvas, rect, cellSize, false);
 
+    if (test.changingState) return;
+
     if (isValidMove(currentPiece, pos.x, pos.y)) {
         const isTake = currentPiece.takeAble.some(
             p => p.pos.x === pos.x && p.pos.y === pos.y
         );
 
         if (isTake) {
-            allPiecesOnBoard = allPiecesOnBoard.filter(
+            syncAllPiecesOnBoard(allPiecesOnBoard.filter(
                 p => !(p.pos.x === pos.x && p.pos.y === pos.y)
-            );
+            ))
         }
 
         currentPiece.pos.x = pos.x;
         currentPiece.pos.y = pos.y;
+
+        pushHistory(allPiecesOnBoard);
 
     } else {
         currentPiece.pos.x = currentPiece.originPos.x;
         currentPiece.pos.y = currentPiece.originPos.y;
     }
 
-    render({
-        ctx,
-        canvas,
-        cellSize,
-        n,
-        showValidMoves,
-        dragging,
-        pos,
-        currentPiece,
-        pieces: allPiecesOnBoard,
-    });
+    if (currentPiece && currentPiece.getRules.canChangeStateCondition(currentPiece, n)) {
+        test.changingState = true;
+        dragging = false;
+        showValidMoves = 0;
+
+        render({
+            ctx,
+            canvas,
+            cellSize,
+            n,
+            showValidMoves,
+            dragging,
+            pos,
+            currentPiece,
+            pieces: allPiecesOnBoard,
+        });
+
+        changeStateBoard(
+            currentPiece,
+            ctx,
+            canvas,
+            ctxChangeingState,
+            cellSize,
+        );
+    } else {
+        render({
+            ctx,
+            canvas,
+            cellSize,
+            n,
+            showValidMoves,
+            dragging,
+            pos,
+            currentPiece,
+            pieces: allPiecesOnBoard,
+        });
+    }
 });
 
 window.addEventListener('resize', () => {
+    if (test.changingState) return;
     resize();
     render({
         ctx,
@@ -304,14 +393,22 @@ window.addEventListener('resize', () => {
     });
 });
 
-render({
-    ctx,
-    canvas,
-    cellSize,
-    n,
-    showValidMoves,
-    dragging,
-    cellPos: null,
-    currentPiece,
-    pieces: allPiecesOnBoard,
+window.addEventListener('load', () => {
+    resize();
+
+    requestAnimationFrame(() => {
+        resize();
+        history.push(cloneAllPiecesOnBoard(allPiecesOnBoard));
+        render({
+            ctx,
+            canvas,
+            cellSize,
+            n,
+            showValidMoves,
+            dragging,
+            cellPos: null,
+            currentPiece,
+            pieces: allPiecesOnBoard,
+        });
+    });
 });
