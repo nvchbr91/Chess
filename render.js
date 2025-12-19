@@ -36,6 +36,7 @@ let pieceStates = [];
 let hoveringPiece = false;
 
 // Fix drawGrowCell while changingState
+// Fix hovering canvasChangingBoard while it closed
 // Fix low resolution while changingState
 
 function drawBoard(c1 = '#f7f7e6ff', c2 = '#416f9cff') {
@@ -127,6 +128,7 @@ export function sync(variables) {
 }
 
 export function loadImage(ctx, piece) {
+    // Don't do it this way anymore. When starting, pre-load all images and put them into imageCache, then access them when needed.
     const src = piece.shape.image;
     if (imageCache[src]) return imageCache[src];
 
@@ -347,32 +349,28 @@ canvasChangingState.addEventListener('mousedown', e => {
     const my = Math.min(Math.max(e.clientY - rect.top, cellSize / 2), canvasChangingState.height - cellSize / 2);
     const y = Math.floor(my * 2 / cellSize) + 0.5 - Math.floor(my / cellSize);
     
-    for (const p of pieceStates) {
-        if (pos.x === p.pos.x && pos.y === p.pos.y) {
-            
+    if (pos.y === pieceStates.length + 1) {
+        if (y === pieceStates.length + 0.5) {
+            if (!history[history.length - 2]) return;
+            syncAllPiecesOnBoard(cloneAllPiecesOnBoard(history[history.length - 2]));
+            history.pop();
+
+            render({
+                ctx,
+                canvas,
+                cellSize,
+                n,
+                showValidMoves,
+                dragging,
+                pos,
+                currentPiece: null,
+                pieces: allPiecesOnBoard,
+            });
+
+            test.changingState = false;
+            changingState = false;
+            ctxChangingState.clearRect(0, 0, canvasChangingState.width, canvasChangingState.height);
         }
-    }
-
-    if (y === pieceStates.length + 0.5) {
-        if (!history[history.length - 2]) return;
-        syncAllPiecesOnBoard(cloneAllPiecesOnBoard(history[history.length - 2]));
-        history.pop();
-
-        render({
-            ctx,
-            canvas,
-            cellSize,
-            n,
-            showValidMoves,
-            dragging,
-            pos,
-            currentPiece: null,
-            pieces: allPiecesOnBoard,
-        });
-
-        test.changingState = false;
-        changingState = false;
-        ctxChangingState.clearRect(0, 0, canvasChangingState.width, canvasChangingState.height);
     }
 
     for (const piece of pieceStates) {

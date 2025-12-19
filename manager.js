@@ -25,7 +25,7 @@ import {
 
 const canvas = document.getElementById('boardGame');
 const canvasChangingState = document.getElementById('changingState')
-const ctxChangeingState = canvasChangingState.getContext('2d');
+const ctxChangingState = canvasChangingState.getContext('2d');
 const ctx = canvas.getContext('2d');
 const imageCache = {};
 
@@ -130,7 +130,7 @@ function synchronize() {
     sync({
         canvas,
         canvasChangingState,
-        ctxChangeingState,
+        ctxChangeingState: ctxChangingState,
         ctx,
         n,
         rect,
@@ -147,20 +147,37 @@ function synchronize() {
 function resize() {
     const size = Math.min(window.innerWidth, window.innerHeight) * canvasSizeRatio;
     const dpr = window.devicePixelRatio || 1;
+
     canvas.style.width = size + 'px';
     canvas.style.height = size + 'px';
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     ctx.scale(dpr, dpr);
+
     rect = canvas.getBoundingClientRect();
     cellSize = size / n;
-    canvasChangingState.width = cellSize;
-    canvasChangingState.height = size + cellSize/2;
-    canvasChangingState.style.marginLeft = `${cellSize / 2}px`;
-    canvasChangingState.style.marginTop = `${cellSize / 2}px`;
-    for (let i = 0; i < allPiecesOnBoard.length; i++) {
-        allPiecesOnBoard[i].shape.size = cellSize * pieceSizeRatio;
-    }
+
+    const promoWidth = cellSize;
+    const promoHeight = size;
+
+    canvasChangingState.style.width = promoWidth + 'px';
+    canvasChangingState.style.height = promoHeight + 'px';
+
+    canvasChangingState.width = promoWidth * dpr;
+    canvasChangingState.height = promoHeight * dpr;
+
+    ctxChangingState.resetTransform();
+    ctxChangingState.scale(dpr, dpr);
+
+    const boardRect = canvas.getBoundingClientRect();
+
+    canvasChangingState.style.position = 'fixed';
+    canvasChangingState.style.left = `${boardRect.right + cellSize/5}px`;
+    canvasChangingState.style.top = `${boardRect.top}px`;
+
+    allPiecesOnBoard.forEach(piece => {
+        piece.shape.size = cellSize * pieceSizeRatio;
+    });
 
     synchronize();
 }
@@ -247,7 +264,7 @@ canvas.addEventListener('mousedown', e => {
             currentPiece,
             ctx,
             canvas,
-            ctxChangeingState,
+            ctxChangingState,
             cellSize,
         );
     } else {
@@ -363,7 +380,7 @@ window.addEventListener('mouseup', e => {
             currentPiece,
             ctx,
             canvas,
-            ctxChangeingState,
+            ctxChangingState,
             cellSize,
         );
     } else {
